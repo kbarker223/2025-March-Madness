@@ -197,27 +197,47 @@ def get_last_n_games(game_info, team_id, n):
 ## get strength of schedule
 def get_strength_of_schedule(year, team):
     # (2*(oppo win %) + (oppo oppo win %))/3
-    team_games = reg = m_regseason_stats[m_regseason_stats["GameID"].str.contains(f"{year}_{team}_") | 
-                                         m_regseason_stats["GameID"].str.contains(f"{year}"f"_{team}")]
-    team_games["Opponent"] = team_games["GameID"].apply(
-    lambda x: x.split("_")[2] if x.split("_")[1] == team else x.split("_")[1]
+    team_games = m_regseason_stats[
+            m_regseason_stats["GameID"].str.startswith(f"{year}_{team}_") |
+            m_regseason_stats["GameID"].str.endswith(f"_{team}")
+        ].copy()
+
+    team_games["Opponent"] = team_games.apply(
+        lambda row: row["GameID"].split("_")[2] if row["GameID"].split("_")[1] != team else row["GameID"].split("_")[1], 
+        axis=1
     )
 
-    opponent_win_pcts = team_games["Opponent"].apply(
-        lambda opp: m_regseason_stats[
-            m_regseason_stats["GameID"].str.contains(f"{year}_{opp}_")
-        ]["WTeamID"].value_counts(normalize=True).get(opp, 0) |
-        m_regseason_stats[
-            m_regseason_stats["GameID"].str.contains(f"{year}"f"_{opp}")
-        ]["WTeamID"].value_counts(normalize=True).get(opp, 0)
-    )
+    ## calc the opp win pct
+    def opp_win_pct(opp):
+        opp_games = m_regseason_stats[
+            m_regseason_stats["GameID"].str.startswith(f"{year}_{opp}_") |
+            m_regseason_stats["GameID"].str.endswith(f"_{opp}")
+        ]
 
-    owp = opponent_win_pcts.mean()
+        if opp_games.empty:
+            return -1
 
-   # opponents_opponents = ##
+        wins = len(opp_games[opp_games["WTeamID"] == int(opp)])
+        total = len(opp_games)
+        return wins / total
     
-    #oowp = ##
+    owp_df = team_games.copy()
+    owp_df = owp_df["Opponent"].apply(opp_win_pct)
+    opponent_win_pcts = owp_df
+    owp = opponent_win_pcts.mean()
+    ##function works until here
+    
+    def get_opponents_opponent_win_pct(opp):
+        opp_games = m_regseason_stats[
+            m_regseason_stats["GameID"].str.startswith(f"{year}_{opp}_") |
+            m_regseason_stats["GameID"].str.endswith(f"_{opp}")
+        ]
+        opps_of_opps = opp_games["GameID"].apply(
+            lambda x: x.split("_")[2] if x.split("_")[1] == opp else x.split("_")[1]
+        )
+        return opps_of_opps.apply(opp_win_pct).mean()
 
+    oowp = team_games["Opponent"].apply(get_opponents_opponent_win_pct).mean()
+    sos = (2 * owp + oowp) / 3
 
-    sos = (0.67 * owp) #+ (0.33 * oowp)
     return sos
