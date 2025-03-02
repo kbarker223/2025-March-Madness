@@ -194,50 +194,49 @@ def get_last_n_games(game_info, team_id, n):
         return filtered_df.head(n)
 
 
-## get strength of schedule
 def get_strength_of_schedule(year, team):
-    # (2*(oppo win %) + (oppo oppo win %))/3
-    team_games = m_regseason_stats[
-            m_regseason_stats["GameID"].str.startswith(f"{year}_{team}_") |
-            m_regseason_stats["GameID"].str.endswith(f"_{team}")
-        ].copy()
+    ## Formula:
+    ## (2*(owp) + 1*(oowp))/3
 
-    team_games["Opponent"] = team_games.apply(
-        lambda row: row["GameID"].split("_")[2] if row["GameID"].split("_")[1] != team else row["GameID"].split("_")[1], 
-        axis=1
-    )
+    ## need to add for women (just an if statement)
 
-    ## calc the opp win pct
-    def opp_win_pct(opp):
-        opp_games = m_regseason_stats[
-            m_regseason_stats["GameID"].str.startswith(f"{year}_{opp}_") |
-            m_regseason_stats["GameID"].str.endswith(f"_{opp}")
-        ]
+    # Filter data for the given season once
+    season_games = m_regseason_stats[m_regseason_stats["GameID"].str.startswith(f"{year}_")].copy()
 
-        if opp_games.empty:
-            return -1
+    # Extract winning and losing teams
+    win_counts = season_games.groupby("WTeamID").size()
+    total_games = season_games.groupby("WTeamID").size().add(season_games.groupby("LTeamID").size(), fill_value=0)
 
-        wins = len(opp_games[opp_games["WTeamID"] == int(opp)])
-        total = len(opp_games)
-        return wins / total
-    
-    owp_df = team_games.copy()
-    owp_df = owp_df["Opponent"].apply(opp_win_pct)
-    opponent_win_pcts = owp_df
-    owp = opponent_win_pcts.mean()
-    ##function works until here
-    
+    # Compute win percentages for all teams
+    team_win_pct = (win_counts / total_games).fillna(0).to_dict()
+
+    # Get games played by the team
+    team_games = season_games[
+        season_games["GameID"].str.startswith(f"{year}_{team}_") |
+        season_games["GameID"].str.endswith(f"_{team}")
+    ].copy()
+
+    # Extract opponent team IDs
+    team_games["Opponent"] = team_games["GameID"].apply(
+        lambda x: x.split("_")[2] if x.split("_")[1] != team else x.split("_")[1]
+    ).astype(int)
+
+    # Calculate OWP (Opponent Win Percentage)
+    owp = team_games["Opponent"].map(team_win_pct).mean()
+
+    # Calculate OOWP (Opponent's Opponent Win Percentage)
     def get_opponents_opponent_win_pct(opp):
-        opp_games = m_regseason_stats[
-            m_regseason_stats["GameID"].str.startswith(f"{year}_{opp}_") |
-            m_regseason_stats["GameID"].str.endswith(f"_{opp}")
+        opp_games = season_games[
+            season_games["GameID"].str.startswith(f"{year}_{opp}_") |
+            season_games["GameID"].str.endswith(f"_{opp}")
         ]
-        opps_of_opps = opp_games["GameID"].apply(
+        opp_opponents = opp_games["GameID"].apply(
             lambda x: x.split("_")[2] if x.split("_")[1] == opp else x.split("_")[1]
-        )
-        return opps_of_opps.apply(opp_win_pct).mean()
+        ).astype(int)
+        return opp_opponents.map(team_win_pct).mean()
 
     oowp = team_games["Opponent"].apply(get_opponents_opponent_win_pct).mean()
-    sos = (2 * owp + oowp) / 3
 
+    # Strength of Schedule Formula
+    sos = (2 * owp + oowp) / 3
     return sos
