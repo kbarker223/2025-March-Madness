@@ -240,3 +240,41 @@ def get_strength_of_schedule(year, team):
     # Strength of Schedule Formula
     sos = (2 * owp + oowp) / 3
     return sos
+
+def win_pcnt(year, team):
+    """Returns float between 0 and 1 for the percentage of games won over a given season. 
+    Computed by summing all wins divided by games played"""
+    ...
+
+def average_strength_of_schedule(year):
+    """Returns the average strength of schedule between all teams in NCAA for a 
+    given year. Computed by finding strenght of schedule for every team, sum them
+    all up, and divide by total number of teams in NCAA. 
+    Helper function for matchup_prob"""
+    ...
+
+def matchup_prob(year, team1, team2):
+    """Returns (list) with entries summing to 1 where the first entry is the
+    respective probability team1 wins compared to team2"""
+
+    ###We will most likely want to make year 2025 since the current season would be the
+    # best predictor of their performance in the tournament, but leaving it a variable
+    #in case we want to use it to test a model where we know tournament winners for 
+    #previous years 
+
+    weighted_win_pcnt1 = win_pcnt(year, team1) * ( get_strength_of_schedule(year, team1) / 
+                                     average_strength_of_schedule(year) )
+    
+    weighted_win_pcnt2 = win_pcnt(year, team2) * ( get_strength_of_schedule(year, team2) / 
+                                     average_strength_of_schedule(year) )
+    
+    total = weighted_win_pcnt1 + weighted_win_pcnt2
+
+    prob_of_win_team1 = weighted_win_pcnt1 / total
+    prob_of_win_team2 = weighted_win_pcnt2 / total
+
+    #not sure if its best to return prob_of_win_team1 and then you could get the 
+    #prob of win for team2 by subracting 1 - prob_of_win_team1
+    #OR we could return list or tuple with both probabilities
+
+    return [prob_of_win_team1, prob_of_win_team2]
