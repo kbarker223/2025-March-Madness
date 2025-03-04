@@ -15,7 +15,8 @@ id_str = "2014_1101_1146"
 team_matchup, team1, team2 = extract_game_info(id_str)
 # print(get_last_n_games(team_matchup, 1101, 10))
 
-print(get_strength_of_schedule("2014", 1101))
+print(m_teams[m_teams["TeamID"] == 1146])
+print(win_pcnt("2014", team2))
 #team_id = 1101
 #team1 = Team(team_id=team_id)
 #print(determine_wl(team1))

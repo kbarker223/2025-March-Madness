@@ -4,12 +4,6 @@ import pandas as pd
 
 #Build Functions
 
-from MM2025_Data_Loader import *
-from MM2025_Classes import *
-import pandas as pd
-
-# Build Functions
-
 # Generate GameID for each row
 def generate_game_id(row):
     year = row["Season"]  # Assuming "Season" column stores the year
@@ -195,13 +189,29 @@ def get_last_n_games(game_info, team_id, n):
 
 
 def get_strength_of_schedule(year, team):
+    ##year is the year that we are calculating the schedule
+    ##team is the team we want to check their SOS
+
     ## Formula:
     ## (2*(owp) + 1*(oowp))/3
+    
+    ## check if the teams are mens teams and get the data from m_...
+    if(team.is_mens == True):
+            
+        # Filter data for the given season once
+        season_games = m_regseason_stats[m_regseason_stats["GameID"].str.startswith(f"{year}_")].copy()
 
-    ## need to add for women (just an if statement)
+    ##check if the teams are womens team and then get the data from w_reg...
+    elif(team.is_womens == True):
+        # Filter data for the given season once
+        season_games = w_regseason_stats[w_regseason_stats["GameID"].str.startswith(f"{year}_")].copy()
+    else:
+        print("Team not mens or womens")
+        return -1
 
-    # Filter data for the given season once
-    season_games = m_regseason_stats[m_regseason_stats["GameID"].str.startswith(f"{year}_")].copy()
+    ##now proceed to get the SOS
+    ##team no loner needs to be a class object just the id
+    team = team.team_id
 
     # Extract winning and losing teams
     win_counts = season_games.groupby("WTeamID").size()
@@ -241,10 +251,32 @@ def get_strength_of_schedule(year, team):
     sos = (2 * owp + oowp) / 3
     return sos
 
+
 def win_pcnt(year, team):
     """Returns float between 0 and 1 for the percentage of games won over a given season. 
     Computed by summing all wins divided by games played"""
-    ...
+    ##year is the year that we are calculating the schedule
+    ##team is the team we want to check their SOS
+    if(team.is_mens == True):
+        #need to just get the id now, no longer a class object
+        team = team.team_id
+        season_games = m_regseason_stats[m_regseason_stats["GameID"].str.contains(f"{year}_{team}") | 
+                                         m_regseason_stats["GameID"].str.contains(f"{year}"f"_{team}")].copy()
+    elif(team.is_womens == True):
+        #need to just get the id now, no longer a class object
+        team = team.team_id
+        season_games = w_regseason_stats[w_regseason_stats["GameID"].str.contains(f"{year}_{team}") | 
+                                         w_regseason_stats["GameID"].str.contains(f"{year}"f"_{team}")].copy()
+    else:
+        print("Team not mens or womens")
+        return -1
+    
+    wins = len(season_games[season_games["WTeamID"] == team])
+    total_games = len(season_games[season_games["GameID"].str.contains(f"_{team}")])
+
+    win_pct = wins/total_games
+    return win_pct
+
 
 def average_strength_of_schedule(year):
     """Returns the average strength of schedule between all teams in NCAA for a 
