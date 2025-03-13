@@ -52,7 +52,12 @@ def extract_game_info(id_str):
         'Male2': team2.is_mens
     }])
 
-    return game_df, team1, team2
+    if(team1.is_mens == True):
+        gender = "Mens"
+    else:
+        gender = "Womens"
+
+    return game_df, year, team1, team2, gender
 
 
 def get_seed(team_id):
@@ -188,7 +193,7 @@ def get_last_n_games(game_info, team_id, n):
         return filtered_df.head(n)
 
 
-def get_strength_of_schedule(year, team):
+def get_strength_of_schedule(year, team, gender):
     ##year is the year that we are calculating the schedule
     ##team is the team we want to check their SOS
 
@@ -196,13 +201,13 @@ def get_strength_of_schedule(year, team):
     ## (2*(owp) + 1*(oowp))/3
     
     ## check if the teams are mens teams and get the data from m_...
-    if(team.is_mens == True):
+    if(gender == "Mens"):
             
         # Filter data for the given season once
         season_games = m_regseason_stats[m_regseason_stats["GameID"].str.startswith(f"{year}_")].copy()
 
     ##check if the teams are womens team and then get the data from w_reg...
-    elif(team.is_womens == True):
+    elif(gender == "Womens"):
         # Filter data for the given season once
         season_games = w_regseason_stats[w_regseason_stats["GameID"].str.startswith(f"{year}_")].copy()
     else:
@@ -210,8 +215,6 @@ def get_strength_of_schedule(year, team):
         return -1
 
     ##now proceed to get the SOS
-    ##team no loner needs to be a class object just the id
-    team = team.team_id
 
     # Extract winning and losing teams
     win_counts = season_games.groupby("WTeamID").size()
@@ -278,14 +281,32 @@ def win_pcnt(year, team):
     return win_pct
 
 
-def average_strength_of_schedule(year):
+def average_strength_of_schedule(year, gender):
     """Returns the average strength of schedule between all teams in NCAA for a 
     given year. Computed by finding strenght of schedule for every team, sum them
     all up, and divide by total number of teams in NCAA. 
-    Helper function for matchup_prob"""
-    ...
+    Helper function for matchup_prob"""     
 
-def matchup_prob(year, team1, team2):
+    #might have to change how we handle mens or womens here
+    if(gender == "Mens"):
+        season_games = m_regseason_stats[m_regseason_stats["GameID"].str.contains(f"{year}")]
+    elif(gender == "Womens"):
+        season_games = w_regseason_stats[w_regseason_stats["GameID"].str.contains(f"{year}")]
+    else:
+        print("Team not mens or womens")
+        return -1
+    
+    # get all the teams from the season
+    unique_teams = set(season_games["WTeamID"]).union(set(season_games["LTeamID"]))
+
+    # make a df of each teams SOS
+    sos_values = [get_strength_of_schedule(year, team_id, gender) for team_id in unique_teams]
+
+    # return average sos for a season
+    return np.mean(sos_values)
+
+
+def matchup_prob(year, team1, team2, gender):
     """Returns (list) with entries summing to 1 where the first entry is the
     respective probability team1 wins compared to team2"""
 
@@ -294,11 +315,11 @@ def matchup_prob(year, team1, team2):
     #in case we want to use it to test a model where we know tournament winners for 
     #previous years 
 
-    weighted_win_pcnt1 = win_pcnt(year, team1) * ( get_strength_of_schedule(year, team1) / 
-                                     average_strength_of_schedule(year) )
+    weighted_win_pcnt1 = win_pcnt(year, team1) * ( get_strength_of_schedule(year, team1, gender) / 
+                                     average_strength_of_schedule(year, gender) )
     
-    weighted_win_pcnt2 = win_pcnt(year, team2) * ( get_strength_of_schedule(year, team2) / 
-                                     average_strength_of_schedule(year) )
+    weighted_win_pcnt2 = win_pcnt(year, team2) * ( get_strength_of_schedule(year, team2, gender) / 
+                                     average_strength_of_schedule(year, gender) )
     
     total = weighted_win_pcnt1 + weighted_win_pcnt2
 
@@ -311,7 +332,7 @@ def matchup_prob(year, team1, team2):
 
     return [prob_of_win_team1, prob_of_win_team2]
 
-def to_betting_odds(year, team1, team2):
+def to_betting_odds(year, team1, team2, gender):
     """If we want to use the go_to_converter, we need to change the implied 
     probabilities received by matchup_prob to gambling odds format.
     This is done by just taking the reciprocal of implied probabilities
@@ -319,7 +340,7 @@ def to_betting_odds(year, team1, team2):
     of winning. If a team has 10% (.1) chance of winning then the expected
     payoff is 1/.1 = 10 meaning you get 10 times what you paid."""
 
-    betting_odds_vector = [1 / p for p in matchup_prob(year, team1, team2)]
+    betting_odds_vector = [1 / p for p in matchup_prob(year, team1, team2, gender)]
     return betting_odds_vector
 
 
