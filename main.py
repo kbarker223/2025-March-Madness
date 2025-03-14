@@ -13,12 +13,17 @@ add_game_ids(w_tourney_stats, "w_tourney_stats_w_ids.csv")
 ## test last n games
 id_str = "2014_1101_1146"
 team_matchup, year, team1, team2, gender = extract_game_info(id_str)
-# print(get_last_n_games(team_matchup, 1101, 10))
+#avg = average_strength_of_schedule(year, gender)
+#print(avg)
 
+print(matchup_prob(year, team1, team2, gender, 0.49983495902168046))
+
+
+# print(get_last_n_games(team_matchup, 1101, 10))
 # print(m_teams[m_teams["TeamID"] == 1146])
 # print(win_pcnt("2014", team2))
 
-print(to_betting_odds(year, team1, team2, gender))
+#print(matchup_prob(year, team1, team2, gender))
 #team_id = 1101
 #team1 = Team(team_id=team_id)
 #print(determine_wl(team1))

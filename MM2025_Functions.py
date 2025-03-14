@@ -1,6 +1,8 @@
 from MM2025_Data_Loader import *
 from MM2025_Classes import *
 import pandas as pd
+from itertools import combinations
+
 
 #Build Functions
 
@@ -306,7 +308,7 @@ def average_strength_of_schedule(year, gender):
     return np.mean(sos_values)
 
 
-def matchup_prob(year, team1, team2, gender):
+def matchup_prob(year, team1, team2, gender, avg_sos):
     """Returns (list) with entries summing to 1 where the first entry is the
     respective probability team1 wins compared to team2"""
 
@@ -315,22 +317,23 @@ def matchup_prob(year, team1, team2, gender):
     #in case we want to use it to test a model where we know tournament winners for 
     #previous years 
 
-    weighted_win_pcnt1 = win_pcnt(year, team1) * ( get_strength_of_schedule(year, team1, gender) / 
-                                     average_strength_of_schedule(year, gender) )
+
+    weighted_win_pcnt1 = win_pcnt(year, team1) * ( get_strength_of_schedule(year, team1.team_id, gender) / 
+                                     avg_sos )
     
-    weighted_win_pcnt2 = win_pcnt(year, team2) * ( get_strength_of_schedule(year, team2, gender) / 
-                                     average_strength_of_schedule(year, gender) )
+    weighted_win_pcnt2 = win_pcnt(year, team2) * ( get_strength_of_schedule(year, team2.team_id, gender) / 
+                                     avg_sos )
     
     total = weighted_win_pcnt1 + weighted_win_pcnt2
 
     prob_of_win_team1 = weighted_win_pcnt1 / total
-    prob_of_win_team2 = weighted_win_pcnt2 / total
+    #prob_of_win_team2 = weighted_win_pcnt2 / total
 
     #not sure if its best to return prob_of_win_team1 and then you could get the 
     #prob of win for team2 by subracting 1 - prob_of_win_team1
     #OR we could return list or tuple with both probabilities
 
-    return [prob_of_win_team1, prob_of_win_team2]
+    return prob_of_win_team1
 
 def to_betting_odds(year, team1, team2, gender):
     """If we want to use the go_to_converter, we need to change the implied 
@@ -451,3 +454,17 @@ def zero_sum(listOfPrices, listOfVolumes):
     step = sum(listOfPrices)/sum(listOfSe)
     outputListOfPrices = [x - (y*step) for x,y in zip(listOfPrices, listOfSe)]
     return outputListOfPrices
+
+
+def generate_matchups(year, gender):
+    if(gender == "Mens"):
+        season_games = m_regseason_stats[m_regseason_stats["GameID"].str.contains(f"{year}")]
+    elif(gender == "Womens"):
+        season_games = w_regseason_stats[w_regseason_stats["GameID"].str.contains(f"{year}")]
+    else:
+        print("Team not mens or womens")
+        return -1
+    
+    unique_teams = set(season_games["WTeamID"]).union(set(season_games["LTeamID"]))
+    matchups = [(team1, team2) for team1, team2 in combinations(sorted(unique_teams), 2)]
+    return matchups
