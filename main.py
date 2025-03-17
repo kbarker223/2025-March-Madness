@@ -16,10 +16,15 @@ add_game_ids(w_tourney_stats, "w_tourney_stats_w_ids.csv")
 #avg = average_strength_of_schedule(year, gender)
 #print(avg)
 
-avg_sos = average_strength_of_schedule(2025, "Mens")
+#avg_sos = average_strength_of_schedule(2025, "Mens")
+#print(avg_sos)
 matchups_2025 = generate_matchups(2025, "Mens")
-games = predict_games(matchups_2025, "Mens", avg_sos)
-print(matchups_2025)
+
+games = predict_games(matchups_2025, "Mens", 0.4974665931234844)
+print(games)
+'''
+Processing Year: 2025, Team1: 1101, Team2: 1438
+'''
 
 # print(get_last_n_games(team_matchup, 1101, 10))
 # print(m_teams[m_teams["TeamID"] == 1146])

@@ -257,19 +257,17 @@ def get_strength_of_schedule(year, team, gender):
     return sos
 
 
-def win_pcnt(year, team):
+def win_pcnt(year, team, gender):
     """Returns float between 0 and 1 for the percentage of games won over a given season. 
     Computed by summing all wins divided by games played"""
     ##year is the year that we are calculating the schedule
     ##team is the team we want to check their SOS
-    if(team.is_mens == True):
+    if(gender == "Mens"):
         #need to just get the id now, no longer a class object
-        team = team.team_id
         season_games = m_regseason_stats[m_regseason_stats["GameID"].str.contains(f"{year}_{team}") | 
                                          m_regseason_stats["GameID"].str.contains(f"{year}"f"_{team}")].copy()
-    elif(team.is_womens == True):
+    elif(gender == "Womens"):
         #need to just get the id now, no longer a class object
-        team = team.team_id
         season_games = w_regseason_stats[w_regseason_stats["GameID"].str.contains(f"{year}_{team}") | 
                                          w_regseason_stats["GameID"].str.contains(f"{year}"f"_{team}")].copy()
     else:
@@ -279,8 +277,11 @@ def win_pcnt(year, team):
     wins = len(season_games[season_games["WTeamID"] == team])
     total_games = len(season_games[season_games["GameID"].str.contains(f"_{team}")])
 
-    win_pct = wins/total_games
-    return win_pct
+    if(total_games == 0):
+        return 0
+    else:
+        win_pct = wins/total_games
+        return win_pct
 
 
 def average_strength_of_schedule(year, gender):
@@ -318,10 +319,10 @@ def matchup_prob(year, team1, team2, gender, avg_sos):
     #previous years 
 
 
-    weighted_win_pcnt1 = win_pcnt(year, team1) * ( get_strength_of_schedule(year, team1.team_id, gender) / 
+    weighted_win_pcnt1 = win_pcnt(year, team1, gender) * ( get_strength_of_schedule(year, team1, gender) / 
                                      avg_sos )
     
-    weighted_win_pcnt2 = win_pcnt(year, team2) * ( get_strength_of_schedule(year, team2.team_id, gender) / 
+    weighted_win_pcnt2 = win_pcnt(year, team2, gender) * ( get_strength_of_schedule(year, team2, gender) / 
                                      avg_sos )
     
     total = weighted_win_pcnt1 + weighted_win_pcnt2
@@ -474,7 +475,25 @@ def generate_matchups(year, gender):
     return matchups_df
 
 def predict_games(matchups_list, gender, avg_sos):
-    matchups_list["Pred"] = matchups_list.apply(matchup_prob(int(matchups_list["Year"])), 
-                                                matchup_prob(int(matchups_list["Team1"])), 
-                                                matchup_prob(int(matchups_list["Team2"])), 
-                                                gender, avg_sos)
+    matchups_list["Pred"] = matchups_list.apply(
+    lambda row: (
+        print(f"Processing Year: {row['Year']}, Team1: {row['Team1']}, Team2: {row['Team2']}"),
+        matchup_prob(
+            int(row["Year"]), 
+            int(row["Team1"]), 
+            int(row["Team2"]), 
+            gender, 
+            avg_sos
+        )
+    )[1], axis=1
+)
+    # matchups_list["Pred"] = matchups_list.apply(
+    # lambda row: matchup_prob(
+    #     int(row["Year"]), 
+    #     int(row["Team1"]), 
+    #     int(row["Team2"]), 
+    #     gender, 
+    #     avg_sos
+    # ), axis=1)
+
+    return matchups_list["Pred"]
