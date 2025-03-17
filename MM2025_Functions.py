@@ -466,5 +466,15 @@ def generate_matchups(year, gender):
         return -1
     
     unique_teams = set(season_games["WTeamID"]).union(set(season_games["LTeamID"]))
-    matchups = [(team1, team2) for team1, team2 in combinations(sorted(unique_teams), 2)]
-    return matchups
+    matchups = [(f"{year}_{team1}_{team2}") for team1, team2 in combinations(sorted(unique_teams), 2)]
+    
+    matchups_df = pd.DataFrame(matchups, columns=["GameID"])
+    matchups_df[["Year", "Team1", "Team2"]] = matchups_df["GameID"].str.split("_", expand=True)
+          
+    return matchups_df
+
+def predict_games(matchups_list, gender, avg_sos):
+    matchups_list["Pred"] = matchups_list.apply(matchup_prob(int(matchups_list["Year"])), 
+                                                matchup_prob(int(matchups_list["Team1"])), 
+                                                matchup_prob(int(matchups_list["Team2"])), 
+                                                gender, avg_sos)
