@@ -475,25 +475,22 @@ def generate_matchups(year, gender):
     return matchups_df
 
 def predict_games(matchups_list, gender, avg_sos):
-    matchups_list["Pred"] = matchups_list.apply(
-    lambda row: (
-        print(f"Processing Year: {row['Year']}, Team1: {row['Team1']}, Team2: {row['Team2']}"),
-        matchup_prob(
-            int(row["Year"]), 
-            int(row["Team1"]), 
-            int(row["Team2"]), 
-            gender, 
-            avg_sos
-        )
-    )[1], axis=1
-)
-    # matchups_list["Pred"] = matchups_list.apply(
-    # lambda row: matchup_prob(
-    #     int(row["Year"]), 
-    #     int(row["Team1"]), 
-    #     int(row["Team2"]), 
-    #     gender, 
-    #     avg_sos
-    # ), axis=1)
+    # Select the first row of the DataFrame
+    row = matchups_list.iloc[0]
+    # Print the information for this row
+    print(f"Processing Year: {row['Year']}, Team1: {row['Team1']}, Team2: {row['Team2']}")
 
-    return matchups_list["Pred"]
+    # Call the prediction function for this single row
+    prediction = matchup_prob(
+        int(row["Year"]), 
+        int(row["Team1"]), 
+        int(row["Team2"]), 
+        gender, 
+        avg_sos
+    )
+
+    # Print the prediction
+    print(f"Prediction: {prediction}")
+
+    # Return the output (GameID and Prediction)
+    return row["GameID"], float(prediction)
