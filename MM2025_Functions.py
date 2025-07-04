@@ -413,6 +413,7 @@ def efficient_shin_conversion(listOfOdds, total = 1.0, multiplicativeIfUnprudent
 
     return outputListOfProbabilities
 
+## https://www.kaggle.com/code/kaito510/goto-conversion-winning-solution -- goto conversion solution
 def goto_conversion(listOfOdds, total = 1.0, multiplicativeIfUnprudentOdds = False, isAmericanOdds = False):
 
     #Convert American Odds to Decimal Odds
